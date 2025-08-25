@@ -5,14 +5,15 @@ const sql = require('mssql');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Configuração do SQL Server (pega do .env ou das variáveis do Render)
+// Configuração do SQL Server (agora com suporte à porta customizada)
 const dbConfig = {
   user: process.env.DB_USER,
   password: process.env.DB_PASS,
   server: process.env.DB_HOST,
+  port: parseInt(process.env.DB_PORT, 10) || 1433,
   database: process.env.DB_NAME,
   options: {
-    encrypt: true, // true para nuvem/RDS/Azure, false local
+    encrypt: true, // true para nuvem/RDS/Azure
     trustServerCertificate: true
   }
 };
@@ -55,4 +56,28 @@ app.get('/consulta', async (req, res) => {
   }
 });
 
-// Endpoint pa
+// Endpoint para listar todos os sabores disponíveis
+app.get('/sabores', async (req, res) => {
+  try {
+    await sql.connect(dbConfig);
+
+    const result = await sql.query`
+      SELECT NomeProduto, Preco
+      FROM Estoque
+      WHERE Disponivel = 1 AND Quantidade > 0
+    `;
+
+    res.json({ sabores: result.recordset });
+  } catch (err) {
+    console.error('Erro ao listar sabores:', err);
+    res.status(500).json({ erro: 'Erro ao listar sabores.' });
+  }
+});
+
+app.get('/', (req, res) => {
+  res.send('Qualipreço Webhook está rodando! 🚀');
+});
+
+app.listen(PORT, () => {
+  console.log(`Webhook Qualipreco rodando na porta ${PORT}`);
+});
